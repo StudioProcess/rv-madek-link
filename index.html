@@ -79,12 +79,11 @@
   
   <script>
     function madek2rv(url = '') {
-      let match = url.match(/\/entries\/([-0-9a-f]+)/);
-      if (!match) {
-        return null;
-      }
+      url = url.trim();
+      let match = url.match(/(\/entries\/)?([-0-9a-f]{36})/);
+      if (!match) { return null; }
       
-      let MEDIA_ENTRY_ID = match[1];
+      let MEDIA_ENTRY_ID = match[2];
       let MEDIA_ARCHIVE_BASE_URL = 'https://medienarchiv.zhdk.ch';
       let RV_PLAYER_BASE = 'https://rv-dev.process.studio';
       let video_url = `${MEDIA_ARCHIVE_BASE_URL}/api/media-entries/${MEDIA_ENTRY_ID}/media-file/data-stream`;
