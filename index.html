@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>RV Link Generator</title>
+  <style></style>
+</head>
+<body>
+
+  <img alt="" src="Screenshot 2020-01-24 at 15.19.38.jpg" style="max-width:1000px; width:100%; height:auto;"><br>
+  Enter your ZHDK Medienarchiv URL:<br>
+  <input id="input"> <button>OK</button><br>
+  <br>
+  <div id="results" style="display:none;">
+    Your Research Video Link:<br>
+    <input id="output" readonly> <button id="copy">Copy</button> <a href="" alt="">Go there</a><br>
+    <br>
+    Checking Video: <span id="video-check">...</span><br>
+    Checking Annotations: <span id="annotations-check">...</span>
+  </div>
+
+  
+  <script>
+    function madek2rv(url = '') {
+      let match = url.match(/\/entries\/([-0-9a-f]+)/);
+      if (!match) {
+        return null;
+      }
+      
+      let MEDIA_ENTRY_ID = match[1];
+      let MEDIA_ARCHIVE_BASE_URL = 'https://medienarchiv.zhdk.ch';
+      let RV_PLAYER_BASE = 'https://rv-dev.process.studio';
+      let video_url = `${MEDIA_ARCHIVE_BASE_URL}/api/media-entries/${MEDIA_ENTRY_ID}/media-file/data-stream`;
+      let annotations_url = `${MEDIA_ARCHIVE_BASE_URL}/api/media-entries/${MEDIA_ENTRY_ID}/meta-data/research_video:rv_annotations/data-stream`;
+      let rv_player_url = `${RV_PLAYER_BASE}/?video=${encodeURIComponent(video_url)}&annotations=${encodeURIComponent(annotations_url)}`;
+      console.log(`Your RV URL:\n${rv_player_url}`);
+      
+      return { video_url, annotations_url, rv_player_url };
+    }
+    
+    function ok($target, msg) {
+      $target.innerText = msg;
+      $target.style.color = 'green';
+    }
+    function fail($target, msg) {
+      $target.innerText = msg;
+      $target.style.color = 'red';
+    }
+    
+    async function checkResponse(url, $result, expected_type) {
+      $result.innerText = '...';
+      $result.style.color = '';
+      let res;
+      try {
+        res = await fetch(url, {
+          redirect: 'follow',
+          credentials: 'include'
+        });
+      } catch (e) {
+        fail($result, e.message);
+        return;
+      }
+      const type = res.headers.get('content-type');
+      res.content_type = type;
+      console.log(res);
+      
+      if (res.ok) {
+        if (type.startsWith(expected_type)) {
+          ok($result, 'OK');
+          return;
+        }
+        // unexpected type
+        fail($result, `Unexpected Media Type (${type})`);
+        return;
+      }
+      if (res.status == 422) {
+        fail($result, 'Missing');
+        return;
+      }
+      if (res.status == 401) {
+        fail($result, 'Unauthorized. Please log in to the Media-Archive.');
+        return;
+      }
+      if (res.status == 403) {
+        fail($result, $result.innerText = 'Forbidden. You don\'t have persission to access this data.');
+        return;
+      }
+        fail($result, `${res.statusText} (${res.status})`);
+    }
+    
+    const $button = document.querySelector('button');
+    const $results = document.querySelector('#results');
+    const $input = document.querySelector('#input');
+    const $output = document.querySelector('#output');
+    const $video_check = document.querySelector('#video-check');
+    const $annotations_check = document.querySelector('#annotations-check');
+    const $link = document.querySelector('a');
+    const $copy = document.querySelector('#copy');
+    
+    $copy.addEventListener('click', () => {
+      const el = document.createElement('textarea');
+      el.value = $output.value;
+      document.body.appendChild(el);
+      el.select();
+      let copy_success = document.execCommand('copy');
+      document.body.removeChild(el);
+      alert('Your Research Video URL has been copied to the clipboard!');
+    });
+    
+    $button.addEventListener('click', () => {
+      $results.style.display = 'none';
+      const urls = madek2rv($input.value);
+      
+      if (!urls) {
+        alert('Not a valid Media-Archive URL!');
+        return;
+      }
+      
+      console.log(urls);
+
+      $output.value = urls.rv_player_url;
+      $link.href = urls.rv_player_url;
+      $results.style.display = 'block';
+      
+      checkResponse(urls.video_url, $video_check, 'video', );
+      checkResponse(urls.annotations_url, $annotations_check, 'application/json');
+      // $result.innerText = `${res.status} (${res.statusText})`;
+      // console.log(type);
+      
+      
+      // alert(`Your Research Video URL${success?' has been copied to the clipboard!':':'}\n\n${rv_player_url}`);
+    });  
+  </script>
+</body>
+</html>
