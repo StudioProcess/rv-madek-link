@@ -56,7 +56,7 @@
       try {
         res = await fetch(url, {
           redirect: 'follow',
-          credentials: 'include'
+          // credentials: 'include'
         });
       } catch (e) {
         fail($result, e.message);
