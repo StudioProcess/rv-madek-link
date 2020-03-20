@@ -72,7 +72,7 @@
   <div class="paragraph">
     <div id="results" style="display:none;">
       Here's your <img src="assets/rv-logo_small.png" style="height:20px; width:auto;"> Research Video Link:<br>
-      <input id="output" readonly> <button class="getlink" id="copy">Copy</button> <a href="" alt="" target="_blank">&#8594; Go there</a><br>
+      <input id="output" readonly> <button class="getlink" id="copy">Copy</button> <a id="link" href="" alt="" target="_blank">&#8594; Go there</a><br>
       <br><br>
       Checking Video... <span id="video-check">...</span><br>
       Checking Annotations... <span id="annotations-check">...</span>
@@ -153,7 +153,7 @@
     const $output = document.querySelector('#output');
     const $video_check = document.querySelector('#video-check');
     const $annotations_check = document.querySelector('#annotations-check');
-    const $link = document.querySelector('a');
+    const $link = document.querySelector('#link');
     const $copy = document.querySelector('#copy');
     
     $copy.addEventListener('click', () => {
