@@ -81,14 +81,15 @@
 
   
   <script>
+    //const MEDIA_ARCHIVE_BASE_URL = 'https://medienarchiv.zhdk.ch';
+    const MEDIA_ARCHIVE_BASE_URL = 'https://test.madek.zhdk.ch';
+    const RV_PLAYER_BASE = 'https://rv-dev.process.studio';
     function madek2rv(url = '') {
       url = url.trim();
       let match = url.match(/(\/entries\/)?([-0-9a-f]{36})/);
       if (!match) { return null; }
       
       let MEDIA_ENTRY_ID = match[2];
-      let MEDIA_ARCHIVE_BASE_URL = 'https://medienarchiv.zhdk.ch';
-      let RV_PLAYER_BASE = 'https://rv-dev.process.studio';
       let video_url = `${MEDIA_ARCHIVE_BASE_URL}/api/media-entries/${MEDIA_ENTRY_ID}/media-file/data-stream`;
       let annotations_url = `${MEDIA_ARCHIVE_BASE_URL}/api/media-entries/${MEDIA_ENTRY_ID}/meta-data/research_video:rv_annotations/data-stream`;
       let rv_player_url = `${RV_PLAYER_BASE}/?video=${encodeURIComponent(video_url)}&annotations=${encodeURIComponent(annotations_url)}`;
@@ -112,8 +113,9 @@
       let res;
       try {
         res = await fetch(url, {
-          redirect: 'follow',
-          // credentials: 'include'
+          redirect: 'follow', // default anyway
+          credentials: 'include',
+          mode: 'cors' // default anyway
         });
       } catch (e) {
         fail($result, e.message);
@@ -137,7 +139,7 @@
         return;
       }
       if (res.status == 401) {
-        fail($result, 'Unauthorized. Please log in to the Media-Archive.');
+        fail($result, 'Unauthorized. Please log in to the Media Archive.');
         return;
       }
       if (res.status == 403) {
