@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>ZHDK Media Archive ⨯ Research Video – Link Generator</title>
+  <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      font-size: 18px;
+    }
+    a {
+      color: #777;
+      font-size: 16px;
+      font-weight: bold;
+      text-decoration: underline;
+    }
+    a:hover {
+      color: #999;
+      text-decoration: underline;
+    }
+    .paragraph {
+      margin-top: 2em;
+      padding-left: 5em;
+    } 
+    .elementSpacer {
+      margin-top: 0.5em;
+      margin-bottom: 0.2em;
+    }
+    #video-check, #annotations-check {
+      font-weight: bold;
+    }
+    #results {
+      //padding-left: 5em;
+    }
+    input {
+      width: 40%;
+      padding: 6px 10px;
+      margin: 8px 0;
+      box-sizing: border-box;
+      font-family: 'Roboto', sans-serif;
+      font-size: 15px;
+    }
+    .getlink {
+      background-color: #CCC; /* Green */
+      border: none;
+      color: #000;
+      padding: 9px 32px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+      width: 200px;
+      cursor: pointer;
+    }
+    .getlink:hover {
+      background-color: #EEE; /* Green */
+    }
+  </style>
+</head>
+<body>
+  <div>
+    Note: This generates links to the Media Archive <span style="color:red">TEST</span> Server <a href="https://test.madek.zhdk.ch">https://test.madek.zhdk.ch</a><br>
+    <a href="index.live.html">Go to LIVE version of generator</a>
+  </div>
+  <div class="image">
+    <img alt="" src="assets/Screenshot 2020-01-24 at 15.19.38.jpg" style="max-width:1000px; width:100%; height:auto;"><br>
+  </div>
+  <div class="paragraph">
+    <p class="elementSpacer">Enter your ZHDK Media Archive URL:</p>
+    <input id="input"> <button class="getlink">Get RV Link</button><br />
+    <a href="https://docs.google.com/document/d/1PaiglLW7GeMDrfuc2fnXWaxWqzF1YR22YFlkiACmOrE/edit?usp=sharing" target="_blank">&#8594;  How-To: Upload Research Video to ZHDK Media Archive</a>
+  </div>
+  <div class="paragraph">
+    <div id="results" style="display:none;">
+      Here's your <img src="assets/rv-logo_small.png" style="height:20px; width:auto;"> Research Video Link:<br>
+      <input id="output" readonly> <button class="getlink" id="copy">Copy</button> <a id="link" href="" alt="" target="_blank">&#8594; Go there</a><br>
+      <br><br>
+      Checking Video... <span id="video-check">...</span><br>
+      Checking Annotations... <span id="annotations-check">...</span>
+    </div>
+</div>
+
+  
+  <script>
+    //const MEDIA_ARCHIVE_BASE_URL = 'https://medienarchiv.zhdk.ch';
+    const MEDIA_ARCHIVE_BASE_URL = 'https://test.madek.zhdk.ch';
+    const RV_PLAYER_BASE = 'https://rv-dev.process.studio';
+    function madek2rv(url = '') {
+      url = url.trim();
+      let match = url.match(/(\/entries\/)?([-0-9a-f]{36})/);
+      if (!match) { return null; }
+      
+      let MEDIA_ENTRY_ID = match[2];
+      let video_url = `${MEDIA_ARCHIVE_BASE_URL}/api/media-entries/${MEDIA_ENTRY_ID}/media-file/data-stream`;
+      let annotations_url = `${MEDIA_ARCHIVE_BASE_URL}/api/media-entries/${MEDIA_ENTRY_ID}/meta-data/research_video:rv_annotations/data-stream`;
+      let rv_player_url = `${RV_PLAYER_BASE}/?video=${encodeURIComponent(video_url)}&annotations=${encodeURIComponent(annotations_url)}`;
+      console.log(`Your RV URL:\n${rv_player_url}`);
+      
+      return { video_url, annotations_url, rv_player_url };
+    }
+    
+    function ok($target, msg) {
+      $target.innerText = msg;
+      $target.style.color = 'green';
+    }
+    function fail($target, msg) {
+      $target.innerText = msg;
+      $target.style.color = 'red';
+    }
+    
+    async function checkResponse(url, $result, expected_type) {
+      $result.innerText = '...';
+      $result.style.color = '';
+      let res;
+      try {
+        res = await fetch(url, {
+          redirect: 'follow', // default anyway
+          credentials: 'include',
+          mode: 'cors' // default anyway
+        });
+      } catch (e) {
+        fail($result, e.message);
+        return;
+      }
+      const type = res.headers.get('content-type');
+      res.content_type = type;
+      console.log(res);
+      
+      if (res.ok) {
+        if (type.startsWith(expected_type)) {
+          ok($result, 'OK');
+          return;
+        }
+        // unexpected type
+        fail($result, `Unexpected Media Type (${type})`);
+        return;
+      }
+      if (res.status == 422) {
+        fail($result, 'Missing');
+        return;
+      }
+      if (res.status == 401) {
+        fail($result, 'Unauthorized. Please log in to the Media Archive.');
+        return;
+      }
+      if (res.status == 403) {
+        fail($result, $result.innerText = 'Forbidden. You don\'t have persission to access this data.');
+        return;
+      }
+        fail($result, `${res.statusText} (${res.status})`);
+    }
+    
+    const $button = document.querySelector('button');
+    const $results = document.querySelector('#results');
+    const $input = document.querySelector('#input');
+    const $output = document.querySelector('#output');
+    const $video_check = document.querySelector('#video-check');
+    const $annotations_check = document.querySelector('#annotations-check');
+    const $link = document.querySelector('#link');
+    const $copy = document.querySelector('#copy');
+    
+    $copy.addEventListener('click', () => {
+      const el = document.createElement('textarea');
+      el.value = $output.value;
+      document.body.appendChild(el);
+      el.select();
+      let copy_success = document.execCommand('copy');
+      document.body.removeChild(el);
+      alert('Your Research Video URL has been copied to the clipboard!');
+    });
+    
+    $button.addEventListener('click', () => {
+      $results.style.display = 'none';
+      const urls = madek2rv($input.value);
+      
+      if (!urls) {
+        alert('Not a valid Media-Archive URL!');
+        return;
+      }
+      
+      console.log(urls);
+
+      $output.value = urls.rv_player_url;
+      $link.href = urls.rv_player_url;
+      $results.style.display = 'block';
+      
+      checkResponse(urls.video_url, $video_check, 'video', );
+      checkResponse(urls.annotations_url, $annotations_check, 'application/json');
+      // $result.innerText = `${res.status} (${res.statusText})`;
+      // console.log(type);
+      
+      
+      // alert(`Your Research Video URL${success?' has been copied to the clipboard!':':'}\n\n${rv_player_url}`);
+    });  
+  </script>
+</body>
+</html>
